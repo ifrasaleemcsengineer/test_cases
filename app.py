@@ -20,7 +20,6 @@ def get_pdf_text(pdf_docs):
             text += page.extract_text()
     return text
 
-
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
         separator="\n",
@@ -31,18 +30,14 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-
 def get_vectorstore(text_chunks):
     embeddings = OpenAIEmbeddings()
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
-
 
 def get_conversation_chain(vectorstore):
     general_system_template = r""" 
     
- 
     {context}
     {question}   
 
@@ -110,11 +105,11 @@ def get_conversation_chain(vectorstore):
     I provided an example of a user story and test case above. Now your job is to generate all the possible test cases with the same format as given above
     of the user story given by user.
 """
-  
+
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=ChatOpenAI(),  # Add a comma here
+        llm=ChatOpenAI(),
         retriever=vectorstore.as_retriever(),
         memory=memory,
         chain_type="stuff",
@@ -123,9 +118,7 @@ def get_conversation_chain(vectorstore):
 
     conversation_chain.combine_docs_chain.llm_chain.prompt.messages[0] = SystemMessagePromptTemplate(prompt=QA_CHAIN_PROMPT)
 
-
     return conversation_chain
-
 
 def handle_userinput(user_question):
     response = st.session_state.conversation({'question': user_question})
@@ -137,14 +130,11 @@ def handle_userinput(user_question):
                 "{{MSG}}", message.content), unsafe_allow_html=True)
         else:
             st.write(bot_template.replace(
-                
                 "{{MSG}}", message.content), unsafe_allow_html=True)
-
 
 def main():
     load_dotenv()
-    st.set_page_config(page_title="Test Cases Generation",
-                       page_icon=":magic_wand:")
+    st.set_page_config(page_title="Test Cases Generation", page_icon=":magic_wand:")
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
@@ -153,15 +143,16 @@ def main():
         st.session_state.chat_history = None
 
     st.header("Story2Test: Streamlining User Story to Test Case Conversion:")
-    user_question = st.text_input("Enter a user story according to your SRS:")
-    if user_question:
+    user_question = st.text_input("Enter a user story according to your SRS and press Enter:")
+
+    # Check if the user has entered a question and pressed Enter
+    if user_question and st.session_state.conversation is not None:
         handle_userinput(user_question)
 
     with st.sidebar:
         st.subheader("Your SRS document")
-        pdf_docs = st.file_uploader(
-            "Upload your SRS document here and click on 'Process'", accept_multiple_files=True)
-        if st.button("Process"):
+        pdf_docs = st.file_uploader("Upload your SRS document here", accept_multiple_files=True)
+        if pdf_docs:
             with st.spinner("Processing"):
                 # get pdf text
                 raw_text = get_pdf_text(pdf_docs)
@@ -173,9 +164,7 @@ def main():
                 vectorstore = get_vectorstore(text_chunks)
 
                 # create conversation chain
-                st.session_state.conversation = get_conversation_chain(
-                    vectorstore)
-
+                st.session_state.conversation = get_conversation_chain(vectorstore)
 
 if __name__ == '__main__':
     main()
