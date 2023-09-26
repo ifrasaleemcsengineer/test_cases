@@ -143,7 +143,7 @@ def main():
         st.session_state.chat_history = None
 
     st.header("Story2Test: Streamlining User Story to Test Case Conversion:")
-    user_question = st.text_input("Enter a user story according to your SRS and press Enter:")
+    user_question = st.text_input("Input a user story according to your SRS and press Enter:")
 
     # Check if the user has entered a question and pressed Enter
     if user_question and st.session_state.conversation is not None:
