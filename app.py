@@ -16,9 +16,15 @@ def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
+        # Check if the PDF contains the required heading
+        if "Software Requirements Specification" or "SRS" in pdf_reader.pages[0].extract_text():
+            for page in pdf_reader.pages:
+                text += page.extract_text()
+        else:
+            st.error("The uploaded PDF does not contain the heading 'System Requirement Specification.' File rejected.")
+            return None  
     return text
+
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
@@ -107,7 +113,7 @@ def get_conversation_chain(vectorstore):
 """
 
     memory = ConversationBufferMemory(
-        memory_key='chat_history', return_messages=True)
+        memory_key='chat_history', return_messages=False)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=ChatOpenAI(),
         retriever=vectorstore.as_retriever(),
@@ -154,17 +160,18 @@ def main():
         pdf_docs = st.file_uploader("Upload your SRS document here", accept_multiple_files=True)
         if pdf_docs:
             with st.spinner("Processing"):
-                # get pdf text
+            # get pdf text
                 raw_text = get_pdf_text(pdf_docs)
 
-                # get the text chunks
-                text_chunks = get_text_chunks(raw_text)
+                if raw_text is not None:  # Check if the PDF was accepted
+                    # get the text chunks
+                    text_chunks = get_text_chunks(raw_text)
 
-                # create vector store
-                vectorstore = get_vectorstore(text_chunks)
+                    # create vector store
+                    vectorstore = get_vectorstore(text_chunks)
 
-                # create conversation chain
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                    # create conversation chain
+                    st.session_state.conversation = get_conversation_chain(vectorstore)
 
 if __name__ == '__main__':
     main()
