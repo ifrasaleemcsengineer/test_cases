@@ -17,13 +17,15 @@ def get_pdf_text(pdf_docs):
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         # Check if the PDF contains the required heading
-        if "Software Requirements Specification" or "SRS" in pdf_reader.pages[0].extract_text():
+        first_page_text = pdf_reader.pages[0].extract_text()
+        if "Software Requirements Specification" in first_page_text or "SRS" in first_page_text:
             for page in pdf_reader.pages:
                 text += page.extract_text()
         else:
-            st.error("The uploaded PDF does not contain the heading 'System Requirement Specification.' File rejected.")
+            st.error("The uploaded PDF does not contain the heading 'System Requirement Specification' or 'SRS.' File rejected.")
             return None  
     return text
+
 
 
 def get_text_chunks(text):
