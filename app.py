@@ -22,7 +22,7 @@ def get_pdf_text(pdf_docs):
             for page in pdf_reader.pages:
                 text += page.extract_text()
         else:
-            st.error("The uploaded PDF does not contain the heading 'System Requirement Specification' or 'SRS.' File rejected.")
+            st.error("Please upload a Software Requirements Specification(SRC) file")
             return None  
     return text
 
@@ -115,7 +115,7 @@ def get_conversation_chain(vectorstore):
 """
 
     memory = ConversationBufferMemory(
-        memory_key='chat_history', return_messages=False)
+        memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=ChatOpenAI(),
         retriever=vectorstore.as_retriever(),
@@ -129,21 +129,32 @@ def get_conversation_chain(vectorstore):
     return conversation_chain
 
 def handle_userinput(user_question):
-    response = st.session_state.conversation({'question': user_question})
-    st.session_state.chat_history = response['chat_history']
+    if st.session_state.conversation is not None:
+        response = st.session_state.conversation({'question': user_question})
+        st.session_state.chat_history = response['chat_history']
 
-    for i, message in enumerate(st.session_state.chat_history):
-        if i % 2 == 0:
-            st.write(user_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
-        else:
-            st.write(bot_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
+        for i, message in enumerate(st.session_state.chat_history):
+            if i % 2 == 0:
+                st.write(user_template.replace(
+                    "{{MSG}}", message.content), unsafe_allow_html=True)
+            else:
+                st.write(bot_template.replace(
+                    "{{MSG}}", message.content), unsafe_allow_html=True)
+    else:
+        st.error("Please upload an SRS document.")
+
+
 
 def main():
     load_dotenv()
-    st.set_page_config(page_title="Test Cases Generation", page_icon=":magic_wand:")
-    st.write(css, unsafe_allow_html=True)
+    st.set_page_config(page_title="Test Cases Generation",
+                       page_icon=":magic_wand:")
+    st.markdown("""
+    <style>
+    .centered-button {
+        text-align: center;
+    }
+    </style>""", unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
@@ -151,29 +162,36 @@ def main():
         st.session_state.chat_history = None
 
     st.header("Story2Test: Streamlining User Story to Test Case Conversion:")
-    user_question = st.text_input("Input a user story according to your SRS and press Enter:")
+    
+    # Create a form with the input field and button
+    with st.form(key='user_input_form'):
+        user_question = st.text_input("Enter a user story according to your SRS:")
+        generate_button = st.form_submit_button("Generate Response")
 
-    # Check if the user has entered a question and pressed Enter
-    if user_question and st.session_state.conversation is not None:
-        handle_userinput(user_question)
+    # Check if the button is clicked and then generate the response
+    if generate_button:
+        if user_question:
+            handle_userinput(user_question)
 
     with st.sidebar:
         st.subheader("Your SRS document")
-        pdf_docs = st.file_uploader("Upload your SRS document here", accept_multiple_files=True)
+        pdf_docs = st.file_uploader(
+            "Upload your SRS document here", accept_multiple_files=True)
+        
         if pdf_docs:
-            with st.spinner("Processing"):
-            # get pdf text
-                raw_text = get_pdf_text(pdf_docs)
+            for pdf in pdf_docs:
+                # Check if the uploaded file is a PDF
+                if pdf.type != 'application/pdf':
+                    st.error("File type is not valid. Please upload a PDF file.")
+                    return
 
-                if raw_text is not None:  # Check if the PDF was accepted
-                    # get the text chunks
-                    text_chunks = get_text_chunks(raw_text)
-
-                    # create vector store
-                    vectorstore = get_vectorstore(text_chunks)
-
-                    # create conversation chain
-                    st.session_state.conversation = get_conversation_chain(vectorstore)
+                with st.spinner("Processing"):
+                    raw_text = get_pdf_text(pdf_docs)
+                    if raw_text is not None:
+                        text_chunks = get_text_chunks(raw_text)
+                        vectorstore = get_vectorstore(text_chunks)
+                        st.session_state.conversation = get_conversation_chain(
+                            vectorstore)
 
 if __name__ == '__main__':
     main()
