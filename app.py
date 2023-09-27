@@ -49,7 +49,7 @@ def get_conversation_chain(vectorstore):
     {context}
     {question}   
 
-    You are a chatbot who is responsible to generate all the possible test cases of the user story given by the user.
+    You are a chatbot who is responsible to generate all the possible test cases of the user story given by the user by using Software Requirements Specification file.
     Make sure that you cover all the possible test cases.
     ----
 
@@ -111,7 +111,7 @@ def get_conversation_chain(vectorstore):
     An error message is displayed indicating the addition was unsuccessful.
     
     I provided an example of a user story and test case above. Now your job is to generate all the possible test cases with the same format as given above
-    of the user story given by user.
+    of the user story given by user. And also use Software Requirements Specification file for better results.
 """
 
     memory = ConversationBufferMemory(
@@ -149,12 +149,7 @@ def main():
     load_dotenv()
     st.set_page_config(page_title="Test Cases Generation",
                        page_icon=":magic_wand:")
-    st.markdown("""
-    <style>
-    .centered-button {
-        text-align: center;
-    }
-    </style>""", unsafe_allow_html=True)
+    st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
@@ -167,6 +162,7 @@ def main():
     with st.form(key='user_input_form'):
         user_question = st.text_input("Enter a user story according to your SRS:")
         generate_button = st.form_submit_button("Generate Response")
+
 
     # Check if the button is clicked and then generate the response
     if generate_button:
