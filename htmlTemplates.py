@@ -88,6 +88,15 @@ button.css-1x8cf1d.edgvbvh5:active{
     border-color: #d4d8e4;
     color: #000000;
 }
+
+.css-1offfwp p {
+    font-size: 20px;
+}
+
+button.css-1x8cf1d.edgvbvh10{
+    background-color: #d4d8e4;
+    border-radius: 0px;
+}
 '''
 bot_template = '''
 <div class="chat-message bot">
