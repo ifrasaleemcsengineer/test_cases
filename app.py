@@ -179,7 +179,7 @@ def handle_userinput(user_question):
                     st.error(f"Error executing saved Selenium code: {str(e)}")
 
             # Create a download button for all the test cases with bold headings
-            all_test_cases_text = "\n\n".join([f'Test Case {test_case_number}: {test_case}\n' for test_case_number, test_case in all_test_cases])
+            all_test_cases_text = "\n\n".join([f'User Story:\n\n{user_question}\n\nTest Case {test_case_number}: {test_case}\n' for test_case_number, test_case in all_test_cases])
             
             st.download_button(
                 label="Save Test Cases",
