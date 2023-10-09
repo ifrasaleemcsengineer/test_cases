@@ -150,8 +150,6 @@ Automatically determine the path to the WebDriver executable and support multipl
     return conversation_chain
 
 
-import os
-
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
         with st.spinner("Generating Response..."):  
@@ -160,17 +158,11 @@ def handle_userinput(user_question):
             matches = re.findall(pattern, response['answer'], re.DOTALL)
             all_test_cases = []
 
-            # Get the user's home directory
-            user_home = os.path.expanduser("~")
-            
             for idx, match in enumerate(matches):
                 test_case_number = match[0].strip()
                 test_case = match[1].strip()
                 test_case_code = match[2].strip()
-                
-                # Construct the full path to save the code file in the "Documents" folder
-                file_name = os.path.join(user_home, 'Documents', f'test_case_code_{test_case_number}.py')
-                
+                file_name = f'test_case_code_{test_case_number}.py'
                 with open(file_name, 'w') as file:
                     file.write(test_case_code)
               
@@ -197,7 +189,6 @@ def handle_userinput(user_question):
             )
     else:
         st.error("Please upload an SRS document.")
-
 
 
         
