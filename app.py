@@ -153,11 +153,13 @@ Automatically determine the path to the WebDriver executable and support multipl
 
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
-        with st.spinner("Generating Response..."):  
+        with st.spinner("Generating Response..."):
             response = st.session_state.conversation({'question': user_question})
             pattern = r'Test Case (\d+):([^`]+)Selenium Code \(Python\):\n```python\n(.*?)```'
             matches = re.findall(pattern, response['answer'], re.DOTALL)
             all_test_cases = []
+
+            detected_dependencies = set()  # Store detected dependencies here
 
             for idx, match in enumerate(matches):
                 test_case_number = match[0].strip()
@@ -166,19 +168,13 @@ def handle_userinput(user_question):
                 file_name = f'test_case_code_{test_case_number}.py'
                 with open(file_name, 'w') as file:
                     file.write(test_case_code)
-              
+
                 all_test_cases.append((test_case_number, test_case))
                 dependencies = detect_dependencies(test_case_code)
-    
-                install_dependencies(dependencies)
-    
-            # Display the test cases with formatted titles (bold)
-            st.write("Generated Test Cases:")
-            for test_case_number, test_case in all_test_cases:
-                formatted_test_case = user_template.replace("{{MSG}}", f'<b>Test Case {test_case_number}: {test_case}</b>\n')
-                st.write(formatted_test_case, unsafe_allow_html=True)
-                
-            
+
+                # Add detected dependencies to the set
+                detected_dependencies.update(dependencies)
+
                 try:
                     exec(open(file_name).read())
                 except Exception as e:
@@ -186,13 +182,18 @@ def handle_userinput(user_question):
 
             # Create a download button for all the test cases with bold headings
             all_test_cases_text = "\n\n".join([f'User Story:\n\n{user_question}\n\nTest Case {test_case_number}: {test_case}\n' for test_case_number, test_case in all_test_cases])
-            
+
             st.download_button(
                 label="Save Test Cases",
                 data=all_test_cases_text,
-                file_name="all_test_cases.txt",  
-                mime="text/plain",  
+                file_name="all_test_cases.txt",
+                mime="text/plain",
             )
+
+            # Save detected dependencies to a requirements.txt file
+            with open('requirements.txt', 'w') as req_file:
+                req_file.write('\n'.join(detected_dependencies))
+
     else:
         st.error("Please upload an SRS document.")
 
