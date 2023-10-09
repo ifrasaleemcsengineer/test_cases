@@ -13,6 +13,7 @@ from langchain.prompts.chat import SystemMessagePromptTemplate
 import re
 
 
+
 def get_text_from_pdf(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -150,9 +151,6 @@ Automatically determine the path to the WebDriver executable and support multipl
     return conversation_chain
 
 
-import tempfile
-import os
-
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
         with st.spinner("Generating Response..."):  
@@ -161,36 +159,74 @@ def handle_userinput(user_question):
             matches = re.findall(pattern, response['answer'], re.DOTALL)
             all_test_cases = []
 
-            # Create a temporary directory to store test case files
-            with tempfile.TemporaryDirectory() as temp_dir:
-                for idx, match in enumerate(matches):
-                    test_case_number = match[0].strip()
-                    test_case = match[1].strip()
-                    test_case_code = match[2].strip()
-                    file_name = f'test_case_code_{test_case_number}.py'
-                    file_path = os.path.join(temp_dir, file_name)
-                    with open(file_path, 'w') as file:
-                        file.write(test_case_code)
-                    
-                    all_test_cases.append((test_case_number, test_case, file_path))
+            for idx, match in enumerate(matches):
+                test_case_number = match[0].strip()
+                test_case = match[1].strip()
+                test_case_code = match[2].strip()
+                file_name = f'test_case_code_{test_case_number}.py'
+                with open(file_name, 'w') as file:
+                    file.write(test_case_code)
+              
+                all_test_cases.append((test_case_number, test_case))
+                dependencies = detect_dependencies(test_case_code)
+    
+                install_dependencies(dependencies)
+    
+            # Display the test cases with formatted titles (bold)
+            st.write("Generated Test Cases:")
+            for test_case_number, test_case in all_test_cases:
+                formatted_test_case = user_template.replace("{{MSG}}", f'<b>Test Case {test_case_number}: {test_case}</b>\n')
+                st.write(formatted_test_case, unsafe_allow_html=True)
+                
+            
+                try:
+                    exec(open(file_name).read())
+                except Exception as e:
+                    st.error(f"Error executing saved Selenium code: {str(e)}")
 
-                # Display the test cases with formatted titles (bold)
-                st.write("Generated Test Cases:")
-                for test_case_number, test_case, file_path in all_test_cases:
-                    formatted_test_case = user_template.replace("{{MSG}}", f'<b>Test Case {test_case_number}: {test_case}</b>\n')
-                    st.write(formatted_test_case, unsafe_allow_html=True)
-                    try:
-                        exec(open(file_path).read())
-                    except Exception as e:
-                        st.error(f"Error executing saved Selenium code: {str(e)}")
-
-                # Create download links for all the test cases
-                for test_case_number, test_case, file_path in all_test_cases:
-                    st.markdown(f"Download Test Case {test_case_number} Code: [Test Case {test_case_number}.py](sandbox:/path/to/{file_path})")
-
+            # Create a download button for all the test cases with bold headings
+            all_test_cases_text = "\n\n".join([f'User Story:\n\n{user_question}\n\nTest Case {test_case_number}: {test_case}\n' for test_case_number, test_case in all_test_cases])
+            
+            st.download_button(
+                label="Save Test Cases",
+                data=all_test_cases_text,
+                file_name="all_test_cases.txt",  
+                mime="text/plain",  
+            )
     else:
         st.error("Please upload an SRS document.")
 
+
+import re
+
+def detect_dependencies(code):
+    dependencies = set()
+
+    # Regular expression to match import statements
+    import_pattern = re.compile(r'^\s*import\s+(\w+)')
+    from_import_pattern = re.compile(r'^\s*from\s+(\w+)\s+import')
+
+    # Split the code into lines and analyze each line
+    lines = code.split('\n')
+    for line in lines:
+        import_match = import_pattern.match(line)
+        from_import_match = from_import_pattern.match(line)
+
+        if import_match:
+            package_name = import_match.group(1)
+            dependencies.add(package_name)
+        elif from_import_match:
+            package_name = from_import_match.group(1)
+            dependencies.add(package_name)
+
+    return dependencies
+
+
+import subprocess
+
+def install_dependencies(dependencies):
+    for dependency in dependencies:
+        subprocess.run(["pip", "install", dependency])
 
         
 def main():
