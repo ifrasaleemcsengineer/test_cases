@@ -13,7 +13,6 @@ from langchain.prompts.chat import SystemMessagePromptTemplate
 import re
 
 
-
 def get_text_from_pdf(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -135,8 +134,8 @@ Fail Criteria:
 - The product is not added to the shopping cart.
 - An error message is displayed indicating the addition was unsuccessful.
 
-Now, using the provided user story and any relevant information from the attached SRS file, your task is to generate all possible test cases in the format described above. Ensure that each test case is clear, specific, and covers various scenarios related to the user story. And generate the selenium code (python) for the test steps of the each possible test cases with the heading Selenium Code (Python).Find_element_by_xpath is deprecated. Please use find_element(by=By.XPATH, value=xpath) instead.
-Automatically determine the path to the WebDriver executable and support multiple browsers (chrome, firefox, and microsoft edge) using the webdriver_manager package in Python.
+Now, using the provided user story and any relevant information from the attached SRS file, your task is to generate all possible test cases in the format described above. Ensure that each test case is clear, specific, and covers various scenarios related to the user story. And generate the selenium code (python) for the test steps of the each possible test cases with the heading Selenium Code (Python).
+Use options keyword argument to run Chrome in headless mode. Automatically determine the path to the WebDriver executable and support multiple browsers (chrome, firefox, and microsoft edge) using the webdriver_manager package in Python.
 """
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
@@ -153,13 +152,11 @@ Automatically determine the path to the WebDriver executable and support multipl
 
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
-        with st.spinner("Generating Response..."):
+        with st.spinner("Generating Response..."):  
             response = st.session_state.conversation({'question': user_question})
             pattern = r'Test Case (\d+):([^`]+)Selenium Code \(Python\):\n```python\n(.*?)```'
             matches = re.findall(pattern, response['answer'], re.DOTALL)
             all_test_cases = []
-
-            detected_dependencies = set()  # Store detected dependencies here
 
             for idx, match in enumerate(matches):
                 test_case_number = match[0].strip()
@@ -168,13 +165,14 @@ def handle_userinput(user_question):
                 file_name = f'test_case_code_{test_case_number}.py'
                 with open(file_name, 'w') as file:
                     file.write(test_case_code)
-
+              
                 all_test_cases.append((test_case_number, test_case))
-                dependencies = detect_dependencies(test_case_code)
 
-                # Add detected dependencies to the set
-                detected_dependencies.update(dependencies)
-
+            # Display the test cases with formatted titles (bold)
+            st.write("Generated Test Cases:")
+            for test_case_number, test_case in all_test_cases:
+                formatted_test_case = user_template.replace("{{MSG}}", f'<b>Test Case {test_case_number}: {test_case}</b>\n')
+                st.write(formatted_test_case, unsafe_allow_html=True)
                 try:
                     exec(open(file_name).read())
                 except Exception as e:
@@ -182,52 +180,18 @@ def handle_userinput(user_question):
 
             # Create a download button for all the test cases with bold headings
             all_test_cases_text = "\n\n".join([f'User Story:\n\n{user_question}\n\nTest Case {test_case_number}: {test_case}\n' for test_case_number, test_case in all_test_cases])
-
+            
             st.download_button(
                 label="Save Test Cases",
                 data=all_test_cases_text,
-                file_name="all_test_cases.txt",
-                mime="text/plain",
+                file_name="all_test_cases.txt",  
+                mime="text/plain",  
             )
-
-            # Save detected dependencies to a requirements.txt file
-            with open('requirements.txt', 'w') as req_file:
-                req_file.write('\n'.join(detected_dependencies))
-
     else:
         st.error("Please upload an SRS document.")
 
 
-import re
 
-def detect_dependencies(code):
-    dependencies = set()
-
-    # Regular expression to match import statements
-    import_pattern = re.compile(r'^\s*import\s+(\w+)')
-    from_import_pattern = re.compile(r'^\s*from\s+(\w+)\s+import')
-
-    # Split the code into lines and analyze each line
-    lines = code.split('\n')
-    for line in lines:
-        import_match = import_pattern.match(line)
-        from_import_match = from_import_pattern.match(line)
-
-        if import_match:
-            package_name = import_match.group(1)
-            dependencies.add(package_name)
-        elif from_import_match:
-            package_name = from_import_match.group(1)
-            dependencies.add(package_name)
-
-    return dependencies
-
-
-import subprocess
-
-def install_dependencies(dependencies):
-    for dependency in dependencies:
-        subprocess.run(["pip", "install", dependency])
 
         
 def main():
