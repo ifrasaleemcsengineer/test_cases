@@ -201,16 +201,12 @@ def handle_userinput(user_question):
             
             # Zip the test cases and code files
             zip_test_cases(all_test_cases)
-            
-            # Provide a button to initiate the download of the zip file
-            if st.button("Download All Test Cases"):
-                st.write("Initiating download...")
-                st.download_button(
-                    label="Download All Test Cases",
-                    data=open('test_cases.zip', 'rb').read(),
-                    file_name="test_cases.zip",
-                    mime="application/zip",
-                )
+            st.download_button(
+            label="Download All Test Cases",
+            data=open('test_cases.zip', 'rb').read(),
+            file_name="test_cases.zip",
+            mime="application/zip",
+        )
 
             # Clean up the test case description files after zipping
             for test_case_number, _ in all_test_cases:
@@ -257,6 +253,6 @@ def main():
         if user_question:
             handle_userinput(user_question)
             
-        
+      
 if __name__ == '__main__':
     main()
