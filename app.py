@@ -11,6 +11,8 @@ from htmlTemplates import css, bot_template, user_template
 from langchain.prompts import PromptTemplate
 from langchain.prompts.chat import SystemMessagePromptTemplate
 import re
+import zipfile
+import os
 
 
 def get_text_from_pdf(pdf_docs):
@@ -27,7 +29,6 @@ def get_text_from_pdf(pdf_docs):
     return text
 
 
-
 def get_text_from_txt(txt_docs):
     text = ""
     for txt in txt_docs:
@@ -37,8 +38,8 @@ def get_text_from_txt(txt_docs):
         if "Software Requirements Specification" not in text and "SRS" not in text:
             st.error("Please upload a Software Requirements Specification(SRC) file")
             return None
-
     return text
+
 
 def get_text_content(uploaded_files):
     text = ""
@@ -52,7 +53,6 @@ def get_text_content(uploaded_files):
             st.error(f"File format '{file.type}' is not supported. Please upload a PDF, DOCX, or TXT file.")
             return None
     return text
-
 
 
 def get_text_chunks(text):
@@ -73,10 +73,13 @@ def get_vectorstore(text_chunks):
 
 
 def get_conversation_chain(vectorstore):
+    selected_num_test_cases = st.radio("Select the number of test cases to generate:", [1, 2, 3, 4, 5])
     general_system_template = r"""
     {context}
     {question}
-Generate all the possible test cases in proper format with their codes based on a user's input user story and the associated Software Requirements Specification (SRS) file. Your goal is to ensure that all possible test scenarios are covered.
+Please select the number of test cases you want to generate:
+{num_test_cases}. Generate {num_test_cases} test cases.
+Generate {num_test_cases} test cases in proper format with their codes based on a user's input user story and the associated Software Requirements Specification (SRS) file. Your goal is to ensure that all possible test scenarios are covered.
 Please follow the format below when generating test cases:
 
 Example User Story:
@@ -145,9 +148,24 @@ Use options keyword argument to run Chrome in headless mode. Automatically deter
         memory=memory,
         chain_type="stuff",
     )
-    QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=general_system_template)
+    QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=general_system_template.replace("{num_test_cases}", str(selected_num_test_cases))
+)
     conversation_chain.combine_docs_chain.llm_chain.prompt.messages[0] = SystemMessagePromptTemplate(prompt=QA_CHAIN_PROMPT)
     return conversation_chain
+
+
+def zip_test_cases(all_test_cases):
+    with zipfile.ZipFile('test_cases.zip', 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for test_case_number, test_case in all_test_cases:
+            file_name = f'test_case_code_{test_case_number}.py'
+            # Create a test case description file with the test case number heading
+            test_case_description = f'Test Case {test_case_number} description.txt'
+            with open(test_case_description, 'w') as desc_file:
+                desc_file.write(f'Test Case {test_case_number}:\n\n{test_case}')
+            # Add the description file to the zip
+            zipf.write(test_case_description, f'Test Case {test_case_number}/{test_case_description}')
+            # Add the code file to the zip
+            zipf.write(file_name, f'Test Case {test_case_number}/{file_name}')
 
 
 def handle_userinput(user_question):
@@ -171,27 +189,36 @@ def handle_userinput(user_question):
             # Display the test cases with formatted titles (bold)
             st.write("Generated Test Cases:")
             for test_case_number, test_case in all_test_cases:
-                formatted_test_case = user_template.replace("{{MSG}}", f'<b>Test Case {test_case_number}: {test_case}</b>\n')
+                formatted_test_case = user_template.replace("{{MSG}}",f'<b style="font-size: 20px;">Test Case {test_case_number}:</b> \n\n{test_case}\n')
                 st.write(formatted_test_case, unsafe_allow_html=True)
                 try:
                     exec(open(file_name).read())
                 except Exception as e:
                     st.error(f"Error executing saved Selenium code: {str(e)}")
 
-            # Create a download button for all the test cases with bold headings
+            # Create a download button for all the test cases with formatted headings
             all_test_cases_text = "\n\n".join([f'User Story:\n\n{user_question}\n\nTest Case {test_case_number}: {test_case}\n' for test_case_number, test_case in all_test_cases])
             
-            st.download_button(
-                label="Save Test Cases",
-                data=all_test_cases_text,
-                file_name="all_test_cases.txt",  
-                mime="text/plain",  
-            )
+            # Zip the test cases and code files
+            zip_test_cases(all_test_cases)
+            
+            # Provide a button to initiate the download of the zip file
+            if st.button("Download All Test Cases"):
+                st.write("Initiating download...")
+                st.download_button(
+                    label="Download All Test Cases",
+                    data=open('test_cases.zip', 'rb').read(),
+                    file_name="test_cases.zip",
+                    mime="application/zip",
+                )
+
+            # Clean up the test case description files after zipping
+            for test_case_number, _ in all_test_cases:
+                test_case_description = f'Test Case {test_case_number} description.txt'
+                if os.path.exists(test_case_description):
+                    os.remove(test_case_description)
     else:
         st.error("Please upload an SRS document.")
-
-
-
 
         
 def main():
@@ -229,6 +256,7 @@ def main():
     if generate_button:
         if user_question:
             handle_userinput(user_question)
-    
+            
+        
 if __name__ == '__main__':
     main()
