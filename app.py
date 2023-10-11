@@ -73,7 +73,7 @@ def get_vectorstore(text_chunks):
 
 
 def get_conversation_chain(vectorstore):
-    selected_num_test_cases = st.radio("Select the number of test cases to generate:", [1, 2, 3, 4, 5])
+    selected_num_test_cases = st.selectbox("Select the number of test cases to generate:", ["Select an option",1, 2, 3, 4, 5])
     general_system_template = r"""
     {context}
     {question}
@@ -137,8 +137,21 @@ Fail Criteria:
 - The product is not added to the shopping cart.
 - An error message is displayed indicating the addition was unsuccessful.
 
+**Selenium Code (Python):**
+```python
+
+Way to initialize the Selenium application:
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By  
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+service = Service(ChromeDriverManager().install())
+options = webdriver.ChromeOptions()
+driver = webdriver.Chrome(service=service, options=options
+
 Now, using the provided user story and any relevant information from the attached SRS file, your task is to generate all possible test cases in the format described above. Ensure that each test case is clear, specific, and covers various scenarios related to the user story. And generate the selenium code (python) for the test steps of the each possible test cases with the heading Selenium Code (Python).
-Use options keyword argument to run Chrome in headless mode. Automatically determine the path to the WebDriver executable and support multiple browsers (chrome, firefox, and microsoft edge) using the webdriver_manager package in Python.
+Automatically install the WebDriver for the browser and support multiple browsers (chrome, firefox, and microsoft edge) using the webdriver_manager package in Python.
 """
     memory = ConversationBufferMemory(
         memory_key='chat_history', return_messages=True)
@@ -253,6 +266,7 @@ def main():
         if user_question:
             handle_userinput(user_question)
             
-      
+    
+    
 if __name__ == '__main__':
     main()
