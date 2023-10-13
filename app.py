@@ -11,9 +11,10 @@ from htmlTemplates import css, bot_template, user_template
 from langchain.prompts import PromptTemplate
 from langchain.prompts.chat import SystemMessagePromptTemplate
 import re
+from langchain.embeddings import HuggingFaceEmbeddings
 import zipfile
 import os
-
+import subprocess
 
 def get_text_from_pdf(pdf_docs):
     text = ""
@@ -67,8 +68,10 @@ def get_text_chunks(text):
 
 
 def get_vectorstore(text_chunks):
-    embeddings = OpenAIEmbeddings()
+    embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    print(vectorstore)
     return vectorstore
 
 
@@ -140,7 +143,7 @@ Fail Criteria:
 **Selenium Code (Python):**
 ```python
 
-Way to initialize the Selenium application:
+How to initialize the Selenium application:
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By  
@@ -181,6 +184,12 @@ def zip_test_cases(all_test_cases):
             zipf.write(file_name, f'Test Case {test_case_number}/{file_name}')
 
 
+def install_dependencies(all_test_cases):
+    for test_case_code in all_test_cases:
+        import_statements = re.findall(r'import\s+([^\s]+)', test_case_code)
+        for package in import_statements:
+            subprocess.run(['pip', 'install', package])
+            
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
         with st.spinner("Generating Response..."):  
@@ -196,6 +205,7 @@ def handle_userinput(user_question):
                 file_name = f'test_case_code_{test_case_number}.py'
                 with open(file_name, 'w') as file:
                     file.write(test_case_code)
+                install_dependencies(test_case_code)
               
                 all_test_cases.append((test_case_number, test_case))
 
@@ -266,7 +276,6 @@ def main():
         if user_question:
             handle_userinput(user_question)
             
-    
-    
+        
 if __name__ == '__main__':
     main()
