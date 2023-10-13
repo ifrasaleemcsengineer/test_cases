@@ -183,12 +183,6 @@ def zip_test_cases(all_test_cases):
             # Add the code file to the zip
             zipf.write(file_name, f'Test Case {test_case_number}/{file_name}')
 
-
-def install_dependencies(all_test_cases):
-    for test_case_code in all_test_cases:
-        import_statements = re.findall(r'import\s+([^\s]+)', test_case_code)
-        for package in import_statements:
-            subprocess.run(['pip', 'install', package])
             
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
@@ -205,7 +199,6 @@ def handle_userinput(user_question):
                 file_name = f'test_case_code_{test_case_number}.py'
                 with open(file_name, 'w') as file:
                     file.write(test_case_code)
-                install_dependencies(test_case_code)
               
                 all_test_cases.append((test_case_number, test_case))
 
