@@ -68,8 +68,7 @@ def get_text_chunks(text):
 
 
 def get_vectorstore(text_chunks):
-    embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
-    embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+    embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     print(vectorstore)
     return vectorstore
@@ -146,12 +145,17 @@ Fail Criteria:
 How to initialize the Selenium application:
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By  
+from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+import os
+driver = webdriver.Chrome()
+chrome_version = driver.capabilities['browserVersion']
+os.environ["WDM_CHROMEDRIVER_VERSION"] =chrome_version
 service = Service(ChromeDriverManager().install())
 options = webdriver.ChromeOptions()
-driver = webdriver.Chrome(service=service, options=options
+options.add_argument('--headless')
+driver = webdriver.Chrome()
 
 Now, using the provided user story and any relevant information from the attached SRS file, your task is to generate all possible test cases in the format described above. Ensure that each test case is clear, specific, and covers various scenarios related to the user story. And generate the selenium code (python) for the test steps of the each possible test cases with the heading Selenium Code (Python).
 Automatically install the WebDriver for the browser and support multiple browsers (chrome, firefox, and microsoft edge) using the webdriver_manager package in Python.
@@ -183,6 +187,15 @@ def zip_test_cases(all_test_cases):
             # Add the code file to the zip
             zipf.write(file_name, f'Test Case {test_case_number}/{file_name}')
 
+
+def install_dependencies(all_test_cases):
+    for test_case_code in all_test_cases:
+        # Extract import statements from the test case code
+        import_statements = re.findall(r'import\s+([^\s]+)', test_case_code)
+
+        # Install missing dependencies
+        for package in import_statements:
+            subprocess.run(['pip', 'install', package])
             
 def handle_userinput(user_question):
     if st.session_state.conversation is not None:
@@ -199,6 +212,7 @@ def handle_userinput(user_question):
                 file_name = f'test_case_code_{test_case_number}.py'
                 with open(file_name, 'w') as file:
                     file.write(test_case_code)
+                install_dependencies(test_case_code)
               
                 all_test_cases.append((test_case_number, test_case))
 
@@ -269,6 +283,8 @@ def main():
         if user_question:
             handle_userinput(user_question)
             
-        
+    
+    
 if __name__ == '__main__':
+    main()
     main()
