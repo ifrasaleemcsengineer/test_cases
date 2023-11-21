@@ -14,6 +14,8 @@ import re
 from langchain.embeddings import HuggingFaceEmbeddings
 import zipfile
 import os
+from sentence_transformers import SentenceTransformer
+
 import subprocess
 
 def get_text_from_pdf(pdf_docs):
@@ -68,7 +70,7 @@ def get_text_chunks(text):
 
 
 def get_vectorstore(text_chunks):
-    embeddings = OpenAIEmbeddings()
+    embeddings = HuggingFaceEmbeddings(model_name="distilbert-base-uncased")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     print(vectorstore)
     return vectorstore
@@ -286,5 +288,4 @@ def main():
     
     
 if __name__ == '__main__':
-    main()
     main()
